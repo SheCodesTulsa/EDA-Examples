@@ -1,0 +1,180 @@
+---
+title: "Rick and Morty EDA"
+author: "Julia Layne"
+date: "4/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Builing the Initial API Call
+
+
+```{r}
+library(httr)
+library(jsonlite)
+library(plotly)
+
+base <- "https://rickandmortyapi.com/api/"
+endpoint <- "character/"
+page <- '?page='
+#25 pages, can I loop?
+call1 <- paste(base,endpoint,page,"1", sep="")
+get_characters1 <- GET(call1)
+get_characters1
+```
+# Pull out Text of Json response
+
+```{r}
+get_characters_text1 <- content(get_characters1, "text")
+get_characters_text1
+```
+
+#Transform text block into data from using jsonlite
+jsonlite recognises the text block as json and transforms it into a useable dataframe
+```{r}
+get_characters_json1 <- jsonlite::fromJSON(get_characters_text1, flatten = TRUE)
+get_characters_json1
+```
+
+Specifically, we'll use the results to build our character dataset
+```{r}
+total <- get_characters_json1$results
+total
+
+```
+
+We need to know how many pages we should iterate through
+```{r}
+pages <- get_characters_json1$info$pages
+pages
+```
+
+## Looping calls
+
+We'll loop through for every page and rbind the resulting response to our character dataset
+```{r}
+for (val in seq.int(2, pages, 1))
+{
+  call <- paste(base,endpoint,page,val, sep="")
+  get_characters <- GET(call)
+  get_characters_text <- content(get_characters, "text")
+  get_characters_page <- jsonlite::fromJSON(get_characters_text, flatten = TRUE)
+  
+  
+  total <-rbind(total, get_characters_page$results)
+}
+total
+pages
+```
+
+
+# Defining 'Rick' and 'Morty'-ness
+Using a simple string find through grepl to see if name contains one of these character names. 
+
+```{r}
+names <- c('test','Rick Sanchez','Morty Smith','Summer Smith')
+
+rickOrMorty_name <- function(name) {
+  rickOrMorty <- 'Neither'
+  if(grepl('morty', name,ignore.case = TRUE)){rickOrMorty <-'Morty'}
+  if(grepl('rick', name,ignore.case = TRUE)){rickOrMorty <-'Rick'}
+  rickOrMorty 
+}
+#testing top dataset to confirm it is working
+sapply(names, rickOrMorty_name,simplify = TRUE)
+```
+
+# Apply function over entire dataset to categorize all characters
+```{r}
+all_characters <- total %>% mutate(rickOrMorty = sapply(name, rickOrMorty_name,simplify = TRUE))
+all_characters
+```
+
+# Subsetting data to only fields we care about
+```{r}
+#unnest(all_characters, .drop = NA, .id = episode, .sep = NULL,.preserve = NULL)
+
+myvars <- c("name", "rickOrMorty", "status","species")
+newdata <- all_characters[myvars]
+newdata
+
+```
+
+
+## Graphs
+```{r}
+library(GGally)
+newdata %>% select(rickOrMorty,status, species) %>% ggpairs(mapping = aes(color=species)) + ggtitle("Character by 'Rick or Morty', Health Status, and Species")
+```
+
+# Looking into Health Status
+```{r}
+
+p= newdata %>% 
+  ggplot(aes(x = species, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status by Species") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(p)
+
+noHumans= filter(newdata, species != 'Human') %>% 
+  ggplot(aes(x = species, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status by Species (No Humans)") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(noHumans)
+
+noHumanDf <-filter(newdata, species != 'Human')
+noAliensNoHumansDf <- filter(noHumanDf, species != 'Alien')
+noAliensNoHumansDf
+
+noHumansOrAliens= noAliensNoHumansDf %>% 
+  ggplot(aes(x = species, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status by Species (No Humans and No Aliens)") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(noHumansOrAliens)
+```
+
+# Health Status Looking at Character Type
+
+```{r}
+countHealth = newdata %>% 
+  ggplot(aes(x = rickOrMorty, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status by Character Type") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(countHealth)
+
+rickAndMorty= filter(newdata, rickOrMorty != 'Neither') %>% 
+  ggplot(aes(x = rickOrMorty, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status for Rick and Morty Characters") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(rickAndMorty)
+```
+
+# Species and Status of Rick and Morty Characters only (bad way)
+```{r}
+rickAndMorty= filter(newdata, rickOrMorty != 'Neither') %>% 
+  ggplot(aes(x = species, fill=rickOrMorty)) + 
+  geom_histogram(stat="count", mapping = aes(color=status),position="dodge") + ggtitle("Health Status for Rick and Morty Characters by Species")+ scale_fill_hue(l=80, c=12) + scale_color_manual(values=c("#33cc33", "#000000","#9933ff"))
+ggplotly(rickAndMorty)
+```
+
+
+# Species and Status of Rick and Morty Characters only (Better way)
+Two separate graphs, instead of one overloaded graph
+```{r}
+
+rick= filter(newdata, rickOrMorty == 'Rick') %>% 
+  ggplot(aes(x = species, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status for Rick Characters") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(rick)
+
+morty = filter(newdata, rickOrMorty == 'Morty') %>% 
+  ggplot(aes(x = species, fill=status)) + 
+  geom_histogram(stat="count", mapping = aes(color=status)) + ggtitle("Health Status for Morty Characters") + scale_fill_hue(l=80, c=12) + scale_color_hue(l=40, c=35)
+
+ggplotly(morty)
+```
+

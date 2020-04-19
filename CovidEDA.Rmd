@@ -1,0 +1,119 @@
+---
+title: "COVID-19 EDA"
+author: "Julia Layne"
+date: "3/13/2020"
+output: html_document
+---
+
+## Read in Files
+
+```{r}
+covid_raw = read.csv("04-18-2020.csv",header = TRUE)
+#covid_ts_confirmed = read.csv(file.choose(),header = TRUE)
+```
+
+## Look at Raw Data
+
+```{r}
+covid_raw
+#covid_ts_confirmed
+```
+
+# Plot Data
+
+Initial lookinto ploting data points
+```{r}
+library(ggplot2)
+library(GGally)
+library(plotly)
+
+plot(covid_raw)
+
+byState10 <- covid_raw %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases in First Ten Provinces")
+
+ggplotly(byState10)
+
+byState <- covid_raw %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases per Province")
+ggplotly(byState)
+
+byStateNoNY <- filter(covid_raw, Province_State != 'New York' & Province_State != 'New Jersey' & Province_State != 'Hubei')  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases per Province")
+ggplotly(byStateNoNY)
+
+#covid_raw %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus China)")
+
+```
+
+```{r}
+statesAbove700Deaths <- filter(covid_raw, Deaths > 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Top Mortality States")
+ggplotly(statesAbove700Deaths)
+```
+
+
+
+# Map data using Fips codes
+
+```{r}
+library(e1071)
+library(usmap)
+
+UScovid_dataset <- filter(covid_raw, Country_Region == 'US' & FIPS != 'NA') 
+UScovid_dataset
+
+#UScovid_dataset$fips <- fips(brew_count_by_state$state)
+attach(UScovid_dataset)
+UScovid_dataset_fips <- UScovid_dataset[order(FIPS),] 
+detach(UScovid_dataset)
+
+
+UScovid_dataset_fips$fips = UScovid_dataset_fips$FIPS
+
+plot_usmap(data = UScovid_dataset_fips,  values = "Deaths", color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State", subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+
+plot_usmap(data = filter(UScovid_dataset_fips, Province_State != 'New York'),  values = "Deaths", color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State (New York Removed)", subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+```
+
+# Previous Work - Finding the top Countries by Confirmed Cases
+
+
+```{r}
+confirmed_by_country <- covid_raw%>% group_by(Country_Region) %>% tally(Confirmed, name = "Confirmed", sort = TRUE)
+confirmed_by_country
+
+deaths_by_country <- covid_raw%>% group_by(Country_Region) %>% tally(Deaths, name = "Deaths", sort = TRUE)
+deaths_by_country
+
+totals <- merge(confirmed_by_country, deaths_by_country, by="Country_Region")
+totals
+
+```
+
+Then reordered by Confirmed
+```{r}
+
+top_to_least <- totals[order(totals$Confirmed, decreasing = TRUE),]
+
+top_to_least
+```
+
+```{r}
+
+top10Confirmed <- top_to_least %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top countries")
+
+ggplotly(top10Confirmed)
+
+# At the time, China was the highest and I wanted to look at the rest, now it is much different
+top10ConfirmedMinusChina <- subset(top_to_least, Country_Region != "China")  %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus China)")
+ggplotly(top10ConfirmedMinusChina)
+
+# Now removing US instead
+top10ConfirmedMinusUS <- subset(top_to_least, Country_Region != "US")  %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus US)")
+ggplotly(top10ConfirmedMinusUS)
+```
+
+
+
+
