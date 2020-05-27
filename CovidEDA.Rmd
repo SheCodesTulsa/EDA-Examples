@@ -6,22 +6,23 @@ output: html_document
 ---
 
 ## Read in Files
-
+Change with new COVID file for most up to date info
 ```{r}
-covid_raw = read.csv("04-18-2020.csv",header = TRUE)
+covid_raw = read.csv("05-21-2020.csv",header = TRUE)
 #covid_ts_confirmed = read.csv(file.choose(),header = TRUE)
 ```
 
 ## Look at Raw Data
 
 ```{r}
-covid_raw
+summary(covid_raw)
 #covid_ts_confirmed
 ```
 
 # Plot Data
 
 Initial lookinto ploting data points
+Note here
 ```{r}
 #install.packages("tidyverse")
 library(tidyverse)
@@ -46,7 +47,10 @@ ggplotly(byStateNoNY)
 ```
 
 ```{r}
-statesAbove700Deaths <- filter(covid_raw, Deaths > 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Top Mortality States")
+statesAbove700Deaths <- filter(covid_raw, Deaths > 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Over 700 Mortality States")
+ggplotly(statesAbove700Deaths)
+
+statesAbove700Deaths <- filter(covid_raw, Deaths < 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Under 700 Mortality States")
 ggplotly(statesAbove700Deaths)
 ```
 
@@ -74,6 +78,10 @@ plot_usmap(data = UScovid_dataset_fips,  values = "Deaths", color = rgb(.2, .7, 
   scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
 
 plot_usmap(data = filter(UScovid_dataset_fips, Province_State != 'New York'),  values = "Deaths", color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State (New York Removed)", subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+
+plot_usmap(data = filter(UScovid_dataset_fips, Province_State != 'New York' & Province_State != 'New Jersey'),  values = "Deaths", color = rgb(.2, .7, 1)) + 
     labs(title = "Covid Deaths by State (New York Removed)", subtitle = "Count of Covid19 Deaths per state") + 
   scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
 ```

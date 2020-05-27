@@ -24,6 +24,7 @@ endpoint <- "character/"
 page <- '?page='
 #25 pages, can I loop?
 call1 <- paste(base,endpoint,page,"1", sep="")
+#https://rickandmortyapi.com/api/character/?page=1
 get_characters1 <- GET(call1)
 get_characters1
 ```
@@ -58,6 +59,7 @@ pages
 
 We'll loop through for every page and rbind the resulting response to our character dataset
 ```{r}
+#[2,3,4,5.......30]
 for (val in seq.int(2, pages, 1))
 {
   call <- paste(base,endpoint,page,val, sep="")
@@ -68,8 +70,7 @@ for (val in seq.int(2, pages, 1))
   
   total <-rbind(total, get_characters_page$results)
 }
-total
-pages
+summary(total)
 ```
 
 
@@ -130,6 +131,8 @@ ggplotly(noHumans)
 noHumanDf <-filter(newdata, species != 'Human')
 noAliensNoHumansDf <- filter(noHumanDf, species != 'Alien')
 noAliensNoHumansDf
+
+filter(noHumanDf, species != 'Alien' & species != 'Human')
 
 noHumansOrAliens= noAliensNoHumansDf %>% 
   ggplot(aes(x = species, fill=status)) + 
