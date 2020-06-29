@@ -1,5 +1,15 @@
 # EDA-Examples
-Exploratory Data Analysis using the Rick and Morty API and John Hopkins Covid-19 Dataset
+Exploratory Data Analysis using the John Hopkins Covid-19 Dataset and Rick and Morty API 
+
+Individual dates pulled from
+>  - From the [John Hopkins dataset](https://github.com/CSSEGISandData/COVID-19) avaiable on GitHub
+>  - COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/
+
+Rick And Morty API Documentation
+>  - [API Documentation](https://rickandmortyapi.com/documentation)
+
+Other open APIs to Learn With
+> - [Public APIs](https://github.com/public-apis/public-apis)
 
 # Resources for Learning R
 
