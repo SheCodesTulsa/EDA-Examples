@@ -1,0 +1,237 @@
+---
+title: "Intro to R and COVID-19 EDA"
+author: "Julia Layne"
+date: "6/29/2020"
+output: html_document
+---
+
+# Resources for Learning R
+
+
+### [DataCamp Intro To R](https://www.datacamp.com/courses/free-introduction-to-r)
+  - Truly introductory
+  - Code In Browser, has hints
+
+### [Install R](https://cran.revolutionanalytics.com)
+  - I grabbed the Texas Mirror, but any will work on this page
+  - [R Install Mirrors](https://cran.r-project.org/mirrors.html)
+
+### [RStudio](https://rstudio.com)
+
+### [RStudio Cloud](https://rstudio.cloud/)
+  - Allows you to use R before installing. You can work on projects from any computer with a browser.
+  - [Out of Beta August 2020 - Plans and Pricing](https://rstudio.cloud/plans/free)
+
+### [FreeCodeCamp Intro Video](https://www.youtube.com/watch?v=_V8eKsto3Ug)
+  - Made by Barton Poulson
+  - [His R Intro](https://datalab.cc/tools/r01)
+  - [Intro to R Playlist](https://www.youtube.com/watch?list=PLkk92zzyru5OOYKXfC4OWzc4Lzo_lBOLP&time_continue=22&v=Cl-9aLU292Y&feature=emb_title), I suggest starting at the plot. You can go back to the previous 
+
+
+
+# R Basics
+
+This is an R Markdown file. It lets you run by code block or output a report with knittr
+
+## Math
+
+```{r}
+print("1 + 1")
+1 + 1
+print("13* 13")
+13* 13
+print("25 / 5")
+25 / 5
+print("21 / 5")
+21 / 5
+print("21 %% 5")
+21 %% 5
+print("5^3")
+5^3
+```
+
+## Variables
+
+```{r}
+5 -> five
+thirteen = 13
+print("1 + 1")
+1 + 1
+print("13* 13")
+thirteen* thirteen
+print("25 / 5")
+(20 + five) / five
+print("21 / 5")
+21 / five
+print("21 %% 5")
+21 %% five
+print("5^3")
+five^3
+```
+
+## Vectors
+
+```{r}
+names <- c('test','Myocarditis','beta coronavirus','novel corona 2019','Encephalitis','Hepatitis A', 'influenza', 'coronaitis')
+names
+
+which_name <- function(name) {
+  type <- 'Neither'
+  if(grepl('corona', name,ignore.case = TRUE)){
+    type <-'corona'
+    }
+  if(grepl('itis', name,ignore.case = TRUE)){
+    type <-'itis'
+    }
+  type 
+}
+
+#testing top dataset to confirm it is working
+sapply(names, which_name,simplify = TRUE)
+```
+
+
+# COVID DATASET
+
+>  - From the [John Hopkins dataset](https://github.com/CSSEGISandData/COVID-19) avaiable on GitHub
+>  - COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/
+
+
+## Read in Files
+Change with new COVID file for most up to date info
+```{r}
+covid_raw = read.csv("06-28-2020-us.csv",header = TRUE)
+#covid_ts_confirmed = read.csv(file.choose(),header = TRUE)
+```
+
+## Look at Raw Data
+
+```{r}
+head(covid_raw)
+#covid_ts_confirmed
+```
+
+# Plot Data
+
+Initial lookinto ploting data points
+Note here
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+library(ggplot2)
+library(GGally)
+library(plotly)
+
+plot(covid_raw)
+
+byState10 <- covid_raw %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases in First Ten Provinces")
+
+ggplotly(byState10)
+
+byState <- covid_raw %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases per Province")
+ggplotly(byState)
+
+byStateNoNY <- filter(covid_raw, Province_State != 'New York' & Province_State != 'New Jersey')  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases per Province")
+ggplotly(byStateNoNY)
+
+#covid_raw %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State) + geom_point(aes(fill=Province_State)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus China)")
+
+```
+
+```{r}
+statesAbove700Deaths <- filter(covid_raw, Deaths >= 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Over 700 Mortality States")
+ggplotly(statesAbove700Deaths)
+
+statesAbove700Deaths <- filter(covid_raw, Deaths < 700)  %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Province_State)) + geom_point(aes(fill=Province_State)) + ggtitle("Under 700 Mortality States")
+ggplotly(statesAbove700Deaths)
+```
+
+
+
+# Map data using Fips codes
+
+```{r}
+library(e1071)
+library(usmap)
+
+UScovid_dataset <- filter(covid_raw, Country_Region == 'US' & FIPS != 'NA') 
+UScovid_dataset
+
+#UScovid_dataset$fips <- fips(brew_count_by_state$state)
+attach(UScovid_dataset)
+UScovid_dataset_fips <- UScovid_dataset[order(FIPS),] 
+detach(UScovid_dataset)
+
+
+UScovid_dataset_fips$fips = UScovid_dataset_fips$FIPS
+
+plot_usmap(data = UScovid_dataset_fips,  
+           values = "Deaths", 
+           color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State", 
+         subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), 
+                        name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+
+plot_usmap(data = filter(UScovid_dataset_fips, Province_State != 'New York'),  values = "Deaths", color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State (New York Removed)", subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+
+plot_usmap(data = filter(UScovid_dataset_fips, Province_State != 'New York' & Province_State != 'New Jersey'),  values = "Deaths", color = rgb(.2, .7, 1)) + 
+    labs(title = "Covid Deaths by State (New York Removed)", subtitle = "Count of Covid19 Deaths per state") + 
+  scale_fill_continuous(low = "white", high = rgb(.2, .7, 1), name = "Deaths per state", label = scales::comma) + theme(legend.position = "right")
+```
+
+# Previous Work - Finding the top Countries by Confirmed Cases
+
+## Read in Files
+Change with new COVID file for most up to date info
+```{r}
+covid_raw_world = read.csv("06-28-2020.csv",header = TRUE)
+#covid_ts_confirmed = read.csv(file.choose(),header = TRUE)
+head(covid_raw_world)
+```
+
+
+```{r}
+confirmed_by_country <- covid_raw_world%>% group_by(Country_Region) %>% tally(Confirmed, name = "Confirmed", sort = TRUE)
+head(confirmed_by_country)
+
+deaths_by_country <- covid_raw_world%>% group_by(Country_Region) %>% tally(Deaths, name = "Deaths", sort = TRUE)
+head(deaths_by_country)
+
+totals <- merge(confirmed_by_country, deaths_by_country, by="Country_Region")
+head(totals)
+
+```
+
+Then reordered by Confirmed
+```{r}
+
+#order(totals$Confirmed, decreasing = TRUE)
+#totals$Confirmed
+#totals[180,]
+
+top_to_least <- totals[order(totals$Confirmed, decreasing = TRUE),]
+
+head(top_to_least)
+```
+
+```{r}
+
+top10Confirmed <- top_to_least %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top countries")
+
+ggplotly(top10Confirmed)
+
+# At the time, China was the highest and I wanted to look at the rest, now it is much different
+top10ConfirmedMinusUS <- subset(top_to_least, Country_Region != "US")  %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus US)")
+ggplotly(top10ConfirmedMinusUS)
+
+# Now removing US instead
+top10ConfirmedMinusUSandB <- subset(top_to_least, Country_Region != "US" & Country_Region != "Brazil")  %>% head(10) %>% ggplot(aes(x=Deaths, y=Confirmed, fill=Country_Region)) + geom_point(aes(fill=Country_Region)) + ggtitle("Deaths vs Confirmed Cases in Top Countries (Minus US and Brazil)")
+ggplotly(top10ConfirmedMinusUSandB)
+```
+
+
+
+

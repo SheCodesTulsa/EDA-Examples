@@ -70,7 +70,7 @@ for (val in seq.int(2, pages, 1))
   
   total <-rbind(total, get_characters_page$results)
 }
-summary(total)
+#summary(total)
 ```
 
 
