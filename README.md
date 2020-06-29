@@ -3,6 +3,7 @@ Exploratory Data Analysis using the John Hopkins Covid-19 Dataset and Rick and M
 
 Individual dates pulled from
 > From the [John Hopkins dataset](https://github.com/CSSEGISandData/COVID-19) avaiable on GitHub
+>
 > COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/
 
 Rick And Morty API Documentation
